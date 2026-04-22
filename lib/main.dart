@@ -1,3 +1,4 @@
+import 'package:encontros/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/location_controller.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
       // 🔥 AQUI ESTÁ O QUE FALTAVA
       theme: AppTheme.darkTheme,
 
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

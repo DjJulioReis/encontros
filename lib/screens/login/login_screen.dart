@@ -30,7 +30,7 @@ class LoginScreen extends StatelessWidget {
               // 🔥 LOGO
               Image.asset(
                 'assets/images/logo.png',
-                width: 200,
+                width: 260,
               ),
 
               const SizedBox(height: 40),
@@ -54,9 +54,84 @@ class LoginScreen extends StatelessWidget {
                   );
                 },
               ),
+
+              const SizedBox(height: 25), // Espaço entre o botão e o texto
+              const Text(
+                "ou continue com",
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+
+              const SizedBox(height: 20),
+
+// 🚀 BOTÕES SOCIAIS
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Deixa um em cada lado
+                children: [
+                  // Botão Google
+                  Expanded(
+                    child: socialButton(
+                      child: Image.asset(
+                        'assets/images/google.png',
+                        height: 24,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 20), // Espaço entre os dois
+
+                  // Botão Apple
+                  Expanded(
+                    child: socialButton(
+                      child: const Icon(Icons.apple, color: Colors.white, size: 28),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center, // Centraliza na tela
+                children: [
+                  const Text(
+                    "Não tem conta? ",
+                    style: TextStyle(color: Colors.white60, fontSize: 16),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      // 🚀 ABRE A PÁGINA DE CADASTRO
+
+                    },
+                    child: const Text(
+                      "Criar conta",
+                      style: TextStyle(
+                        color: Color(0xFFFF006E), // Cor Rosa igual da imagem
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
             ],
+
           ),
+
         ),
+      ),
+    );
+  }
+  Widget socialButton({required Widget child}) {
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A), // Cinza bem escuro
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white10), // Borda quase invisível
+      ),
+      child: InkWell(
+        onTap: () {}, // Ação ao clicar
+        borderRadius: BorderRadius.circular(15),
+        child: Center(child: child),
       ),
     );
   }
