@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "20251810601",
+    "project_id": "encontros-7433d",
+    "storage_bucket": "encontros-7433d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:20251810601:android:ec1d5b9c0387f627d7f538",
+        "android_client_info": {
+          "package_name": "com.example.encontros"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXHOagG4J7zkIFZ7KKJssQCEOfZCrYuBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
