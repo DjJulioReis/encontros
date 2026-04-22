@@ -1,9 +1,12 @@
+import 'package:encontros/screens/perfil/perfil_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/colors.dart';
 import '../../core/location_controller.dart';
 import '../../core/distance_service.dart';
 import '../../widgets/like_button.dart';
+import '../splash/bottom_navigation.dart'; // Certifique-se que o CustomBottomNav está aqui
+import '../home/home_screen.dart'; // Importe a Home
 
 class BuscaScreen extends StatelessWidget {
   const BuscaScreen({super.key});
@@ -44,13 +47,9 @@ class BuscaScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-
-        // 👇 AQUI É O itemBuilder
         itemCount: users.length,
         itemBuilder: (context, index) {
-
           final user = users[index];
-
           double distance = 0;
 
           if (myLocation.lat != null && myLocation.lng != null) {
@@ -70,7 +69,6 @@ class BuscaScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // FOTO
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.network(
@@ -80,10 +78,7 @@ class BuscaScreen extends StatelessWidget {
                     fit: BoxFit.cover,
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
-                // INFO
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,8 +91,6 @@ class BuscaScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-
-                      // 📍 DISTÂNCIA
                       Text(
                         myLocation.lat == null
                             ? "Calculando..."
@@ -107,15 +100,35 @@ class BuscaScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // ❤️ CURTIR
                 const LikeButton(),
               ],
             ),
           );
         },
       ),
-    );
 
+      // 🧭 NAVEGAÇÃO AJUSTADA
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 2, // 2 é o índice da Busca
+        onTap: (index) {
+          if (index == 2) return; // Se já estiver na busca, não faz nada
+
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+              break;
+            case 1:
+            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CurtidasScreen()));
+              break;
+            case 2:
+            // Já estamos aqui
+              break;
+            case 3:
+             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PerfilScreen()));
+              break;
+          }
+        },
+      ),
+    );
   }
 }

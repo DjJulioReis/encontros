@@ -1,6 +1,9 @@
 import 'package:encontros/screens/perfil/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
+import '../home/home_screen.dart'; // Import da Home
+import '../busca/busca_screen.dart'; // Import da Busca
+import '../splash/bottom_navigation.dart'; // Seu menu global
 
 class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
@@ -20,8 +23,6 @@ class PerfilScreen extends StatelessWidget {
                   height: 350,
                   fit: BoxFit.cover,
                 ),
-
-                // overlay escuro
                 Container(
                   height: 350,
                   decoration: BoxDecoration(
@@ -35,16 +36,15 @@ class PerfilScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // nome + idade
                 Positioned(
                   bottom: 20,
                   left: 20,
-                  child: Text(
+                  child: const Text(
                     "Julio, 25 🔥",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 )
@@ -82,7 +82,6 @@ class PerfilScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  // editar perfil
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -104,10 +103,7 @@ class PerfilScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
-                  // configurações
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -122,10 +118,32 @@ class PerfilScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
+      ),
+
+      // 🧭 MENU DE RODAPÉ CONFIGURADO
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 3, // Índice 3 é o Perfil
+        onTap: (index) {
+          if (index == 3) return; // Se já estiver no perfil, não faz nada
+
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+              break;
+            case 1:
+            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CurtidasScreen()));
+              break;
+            case 2:
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen()));
+              break;
+            case 3:
+            // Já estamos aqui
+              break;
+          }
+        },
       ),
     );
   }
