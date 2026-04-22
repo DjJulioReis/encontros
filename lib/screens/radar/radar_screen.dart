@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
+import '../splash/bottom_navigation.dart';
 
 class RadarScreen extends StatefulWidget {
   const RadarScreen({super.key});

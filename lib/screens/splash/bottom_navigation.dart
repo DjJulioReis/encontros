@@ -1,36 +1,29 @@
 import 'package:flutter/material.dart';
 
-class BottomNav extends StatefulWidget {
-  const BottomNav({super.key});
+class CustomBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final Function(int) onTap;
 
-  @override
-  State<BottomNav> createState() => _BottomNavState();
-}
-
-class _BottomNavState extends State<BottomNav> {
-  int index = 0;
-
-  final screens = [
-    Center(child: Text("Curtidas")),
-    Center(child: Text("Chat")),
-    Center(child: Text("Busca")),
-    Center(child: Text("Perfil")),
-  ];
+  const CustomBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: screens[index],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) => setState(() => index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Curtidas"),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Chat"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Busca"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
-        ],
-      ),
+    return BottomNavigationBar(
+      currentIndex: currentIndex,
+      onTap: onTap,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.pink,
+      unselectedItemColor: Colors.white54,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Curtidas"),
+        BottomNavigationBarItem(icon: Icon(Icons.search), label: "Busca"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+      ],
     );
   }
 }

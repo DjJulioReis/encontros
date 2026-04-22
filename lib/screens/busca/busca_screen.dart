@@ -116,5 +116,6 @@ class BuscaScreen extends StatelessWidget {
         },
       ),
     );
+
   }
 }

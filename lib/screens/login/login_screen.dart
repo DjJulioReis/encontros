@@ -1,3 +1,4 @@
+import 'package:encontros/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_input.dart';
@@ -49,7 +50,7 @@ class LoginScreen extends StatelessWidget {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const BottomNav(),
+                      builder: (_) => const HomeScreen(),
                     ),
                   );
                 },
@@ -63,7 +64,6 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-// 🚀 BOTÕES SOCIAIS
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween, // Deixa um em cada lado
                 children: [
