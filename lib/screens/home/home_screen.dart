@@ -1,8 +1,13 @@
 import 'package:encontros/screens/busca/busca_screen.dart';
+import 'package:encontros/screens/chat/chat_global_screen.dart';
+import 'package:encontros/screens/chat/chat_screen.dart';
+import 'package:encontros/screens/parceiros/parceiros_screen.dart';
 import 'package:encontros/screens/perfil/perfil_screen.dart';
+import 'package:encontros/screens/radar/radar_screen.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/home_card.dart';
-import '../splash/bottom_navigation.dart';
+import '../../widgets/custom_bottom_nav.dart';
+import '../cadastro/cadastro_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0; // Para controlar qual ícone está ativo
-
+  var name = "Julio";
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,22 +63,45 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSpacing: 20,
               ),
               delegate: SliverChildListDelegate([
-                HomeCard(imagePath: "assets/images/radar.png", onTap: () {}),
-                HomeCard(imagePath: "assets/images/parceiros.png", onTap: () {}),
+                HomeCard(imagePath: "assets/images/radar.png", onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RadarScreen(), // Sem o 'const' aqui
+                    ),
+                  );
+                }),
+                HomeCard(imagePath: "assets/images/parceiros.png", onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ParceirosScreen(), // Sem o 'const' aqui
+                    ),
+                  );
+                }),
                 HomeCard(imagePath: "assets/images/buscar.png", onTap: () {}),
                 HomeCard(imagePath: "assets/images/fotos-lista.png", onTap: () {}),
+                HomeCard(imagePath: "assets/images/chat.png", onTap: () {
+                  var name = "Julio";
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(name: name), // Sem o 'const' aqui
+                    ),
+                  );
+                }),
+                HomeCard(imagePath: "assets/images/bate_papo.png", onTap: () {
+                  var name = "Julio";
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatGlobalScreen(name: name), // Sem o 'const' aqui
+                    ),
+                  );
+                }),
               ]),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 140,
-                child: HomeCard(
-                  imagePath: "assets/images/chat.png",
-                  onTap: () {},
-                ),
-              ),
-            ),
+
           ],
         ),
       ),
@@ -92,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen()));
               break;
             case 2:
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen()));
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ChatGlobalScreen(name: "julio")));
               break;
             case 3:
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PerfilScreen()));

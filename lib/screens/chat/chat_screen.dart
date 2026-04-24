@@ -1,5 +1,9 @@
+import 'package:encontros/screens/busca/busca_screen.dart';
+import 'package:encontros/screens/home/home_screen.dart';
+import 'package:encontros/screens/parceiros/parceiros_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
+import '../navigation/bottom_navigation.dart'; // Seu menu global
 
 class ChatScreen extends StatefulWidget {
   final String name;
@@ -95,6 +99,7 @@ class _ChatScreenState extends State<ChatScreen> {
           )
         ],
       ),
+
     );
   }
 }

@@ -1,9 +1,10 @@
+import 'package:encontros/screens/parceiros/parceiros_screen.dart';
 import 'package:encontros/screens/perfil/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../home/home_screen.dart'; // Import da Home
 import '../busca/busca_screen.dart'; // Import da Busca
-import '../splash/bottom_navigation.dart'; // Seu menu global
+import '../../widgets/custom_bottom_nav.dart';
 
 class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
@@ -134,7 +135,7 @@ class PerfilScreen extends StatelessWidget {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
               break;
             case 1:
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CurtidasScreen()));
+             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParceirosScreen()));
               break;
             case 2:
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen()));
