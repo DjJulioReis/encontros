@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/colors.dart';
 import '../../core/location_controller.dart';
@@ -16,168 +18,253 @@ class ChatGlobalScreen extends StatefulWidget {
 class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final String _myUid = FirebaseAuth.instance.currentUser?.uid ?? "";
 
-  // 🔥 Lista simulada com localização
-  List<Map<String, dynamic>> messages = [
-    {
-      "user": "Ana",
-      "text": "Alguém por perto?",
-      "time": "14:00",
-      "lat": -25.57,
-      "lng": -48.62,
-    },
-    {
-      "user": "Julio",
-      "text": "Opa, estou aqui no centro!",
-      "time": "14:05",
-      "lat": -25.58,
-      "lng": -48.63,
-    },
-    {
-      "user": "Carla",
-      "text": "Bora marcar algo?",
-      "time": "14:06",
-      "lat": -25.70, // mais longe
-      "lng": -48.80,
-    },
-  ];
+  // 🔥 ESTADO DO ALCANCE (RAIO)
+  double _raioAjustado = 20.0;
 
-  void sendMessage() {
+  // 🚀 FUNÇÃO DE ENVIO PARA O FIREBASE
+  Future<void> sendMessage(double? lat, double? lng) async {
     if (_messageController.text.trim().isEmpty) return;
 
-    setState(() {
-      messages.add({
-        "user": widget.name,
-        "text": _messageController.text,
-        "time": "${TimeOfDay.now().hour}:${TimeOfDay.now().minute}",
-        "lat": 0.0, // depois vem do GPS
-        "lng": 0.0,
-      });
-    });
+    // Se o GPS falhar, avisamos o usuário
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("GPS não localizado. Verifique sua conexão.")),
+      );
+      return;
+    }
 
+    String text = _messageController.text.trim();
     _messageController.clear();
 
-    Future.delayed(const Duration(milliseconds: 200), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+    try {
+      await FirebaseFirestore.instance.collection('chat_global').add({
+        "user": widget.name,
+        "uid": _myUid,
+        "text": text,
+        "lat": lat,
+        "lng": lng,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+
+      _scrollToBottom();
+    } catch (e) {
+      debugPrint("Erro ao enviar: $e");
+    }
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Escuta a localização em tempo real via Provider
     final myLocation = context.watch<LocationController>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0F1E),
       appBar: AppBar(
-        title: const Text("Chat Global (até 40km) 📍"),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context), // 🔥 Agora volta corretamente
+        ),
+        title: const Text(
+          "Radar Chat 📍",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
+          // 🎚️ WIDGET DO SLIDER DE ALCANCE
+          _buildRaioSlider(),
 
-          // 💬 MENSAGENS
+          // 💬 LISTA DE MENSAGENS (FIREBASE)
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-
-                bool isMe = msg["user"] == widget.name;
-
-                double distance = 0;
-
-                if (myLocation.lat != null && myLocation.lng != null) {
-                  distance = DistanceService.calculateDistance(
-                    myLocation.lat!,
-                    myLocation.lng!,
-                    msg["lat"],
-                    msg["lng"],
-                  );
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chat_global')
+                  .orderBy('timestamp', descending: false)
+                  .limitToLast(50)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Erro ao carregar chat", style: TextStyle(color: Colors.white38)));
                 }
 
-                // 🔥 FILTRO 40KM
-                if (distance > 40) {
-                  return const SizedBox.shrink();
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.pinkAccent));
                 }
 
-                return Align(
-                  alignment:
-                  isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isMe
-                          ? AppColors.primaryPink
-                          : AppColors.backgroundSoft,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: isMe
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
+                final docs = snapshot.data!.docs;
 
-                        if (!isMe)
-                          Text(
-                            "${msg["user"]} • ${distance.toStringAsFixed(1)} km",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.pinkAccent,
-                              fontSize: 12,
-                            ),
-                          ),
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    bool isMe = data["uid"] == _myUid;
 
-                        Text(
-                          msg["text"],
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                    // Cálculo de distância
+                    double distance = 0;
+                    if (myLocation.lat != null && myLocation.lng != null) {
+                      distance = DistanceService.calculateDistance(
+                        myLocation.lat!,
+                        myLocation.lng!,
+                        (data["lat"] ?? 0).toDouble(),
+                        (data["lng"] ?? 0).toDouble(),
+                      );
+                    }
 
-                        Text(
-                          msg["time"],
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                    // 🔥 FILTRO DINÂMICO PELO SLIDER
+                    if (distance > _raioAjustado) return const SizedBox.shrink();
+
+                    return _buildChatBubble(data, isMe, distance);
+                  },
                 );
               },
             ),
           ),
 
-          // ⌨️ INPUT
+          // ⌨️ CAMPO DE INPUT
+          _buildInputArea(myLocation),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRaioSlider() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.radar, color: Colors.pinkAccent, size: 20),
+          Expanded(
+            child: Slider(
+              value: _raioAjustado,
+              min: 1.0,
+              max: 40.0,
+              divisions: 39,
+              activeColor: Colors.pinkAccent,
+              inactiveColor: Colors.white10,
+              label: "${_raioAjustado.round()} km",
+              onChanged: (val) => setState(() => _raioAjustado = val),
+            ),
+          ),
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.backgroundSoft),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      hintText: "Diga algo para quem está perto...",
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: AppColors.primaryPink),
-                  onPressed: sendMessage,
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.pinkAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              "${_raioAjustado.round()}km",
+              style: const TextStyle(color: Colors.pinkAccent, fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildChatBubble(Map<String, dynamic> data, bool isMe, double distance) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isMe ? Colors.pinkAccent : const Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(15),
+            topRight: const Radius.circular(15),
+            bottomLeft: Radius.circular(isMe ? 15 : 0),
+            bottomRight: Radius.circular(isMe ? 0 : 15),
+          ),
+          boxShadow: [
+            if (isMe) BoxShadow(color: Colors.pinkAccent.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            if (!isMe)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  "${data["user"]} • ${distance.toStringAsFixed(1)} km",
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.pinkAccent, fontSize: 11),
+                ),
+              ),
+            Text(
+              data["text"] ?? "",
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea(LocationController myLocation) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: TextField(
+                  controller: _messageController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: "Diga algo para quem está perto...",
+                    hintStyle: TextStyle(color: Colors.white24, fontSize: 14),
+                    border: InputBorder.none,
+                  ),
+                  onSubmitted: (_) => sendMessage(myLocation.lat, myLocation.lng),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            CircleAvatar(
+              backgroundColor: Colors.pinkAccent,
+              child: IconButton(
+                icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                onPressed: () => sendMessage(myLocation.lat, myLocation.lng),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

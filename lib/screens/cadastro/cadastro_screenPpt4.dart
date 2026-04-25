@@ -12,11 +12,11 @@ class CadastroStep4 extends StatefulWidget {
 }
 
 class _CadastroStep4State extends State<CadastroStep4> {
-
-  String? bebida;
-  String? fuma;
-  String? filhos;
-  String? relacao;
+  // 🔥 Transformado em listas para múltipla escolha
+  List<String> bebidasSelecionadas = [];
+  List<String> fumaSelecionados = [];
+  List<String> relacaoSelecionados = [];
+  String? filhos; // Escolha única (opcional)
   double altura = 1.70;
 
   bool loading = false;
@@ -24,169 +24,173 @@ class _CadastroStep4State extends State<CadastroStep4> {
   final List<String> opcoesBebida = ["Não bebo", "Socialmente", "Frequentemente"];
   final List<String> opcoesFuma = ["Não", "Às vezes", "Sim"];
   final List<String> opcoesFilhos = ["Não tenho", "Tenho", "Quero ter"];
-  final List<String> opcoesRelacao = ["Casual", "Sério", "Amizade"];
+  final List<String> opcoesRelacao = ["Casual", "Algo Sério", "Novos Amigos", "Apenas papo"];
+
+  // Função genérica para gerenciar as listas (toggle)
+  void _toggleItem(List<String> lista, String item) {
+    setState(() {
+      if (lista.contains(item)) {
+        lista.remove(item);
+      } else {
+        lista.add(item);
+      }
+    });
+  }
 
   Future<void> saveAndNext() async {
-
     setState(() => loading = true);
 
-    await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(widget.userId)
-        .update({
-      "bebida": bebida,
-      "fuma": fuma,
-      "filhos": filhos,
-      "tipo_relacao": relacao,
-      "altura": altura,
-      "etapa": 4,
-      "atualizado_em": FieldValue.serverTimestamp(),
-    });
+    try {
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(widget.userId)
+          .update({
+        "bebida": bebidasSelecionadas, // 🔥 Salva como Array
+        "fuma": fumaSelecionados,       // 🔥 Salva como Array
+        "filhos": filhos,
+        "tipo_relacao": relacaoSelecionados, // 🔥 Salva como Array
+        "altura": altura,
+        "etapa": 4,
+        "atualizado_em": FieldValue.serverTimestamp(),
+      });
 
-    setState(() => loading = false);
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CadastroStep5(userId: widget.userId),
-      ),
-    );
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CadastroStep5(userId: widget.userId),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro: $e")));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1E),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 60),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            // 🔙 voltar
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const Icon(Icons.arrow_back, color: Colors.white),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              "Seu estilo de vida",
-              style: TextStyle(
-                color: Colors.pinkAccent,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+      body: SingleChildScrollView( // Adicionado scroll para telas menores
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 60),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
-            ),
+              const SizedBox(height: 20),
+              const Text(
+                "Seu estilo de vida",
+                style: TextStyle(color: Colors.pinkAccent, fontSize: 26, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 30),
 
-            const SizedBox(height: 30),
+              // Seções com múltipla escolha
+              _sectionMulti("Você bebe?", opcoesBebida, bebidasSelecionadas),
+              _sectionMulti("Você fuma?", opcoesFuma, fumaSelecionados),
+              _sectionMulti("O que busca?", opcoesRelacao, relacaoSelecionados),
 
-            _section("Você bebe?", opcoesBebida, bebida, (v) => bebida = v),
-            _section("Você fuma?", opcoesFuma, fuma, (v) => fuma = v),
-            _section("Filhos", opcoesFilhos, filhos, (v) => filhos = v),
-            _section("O que busca?", opcoesRelacao, relacao, (v) => relacao = v),
+              // Seção com escolha única (Filhos)
+              _sectionSingle("Filhos", opcoesFilhos, filhos, (v) => filhos = v),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
+              const Text("Altura", style: TextStyle(color: Colors.white70)),
+              Slider(
+                value: altura,
+                min: 1.40,
+                max: 2.10,
+                divisions: 70,
+                label: "${altura.toStringAsFixed(2)} m",
+                activeColor: Colors.pinkAccent,
+                onChanged: (value) => setState(() => altura = value),
+              ),
+              Text("${altura.toStringAsFixed(2)} m", style: const TextStyle(color: Colors.white38)),
 
-            const Text("Altura", style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 40),
 
-            Slider(
-              value: altura,
-              min: 1.40,
-              max: 2.10,
-              divisions: 70,
-              label: "${altura.toStringAsFixed(2)} m",
-              onChanged: (value) {
-                setState(() => altura = value);
-              },
-            ),
-
-            Text(
-              "${altura.toStringAsFixed(2)} m",
-              style: const TextStyle(color: Colors.white38),
-            ),
-
-            const Spacer(),
-
-            GestureDetector(
-              onTap: loading ? null : saveAndNext,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFFFF2D8D),
-                      Color(0xFFFF6A00),
-                    ],
+              GestureDetector(
+                onTap: loading ? null : saveAndNext,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(25),
+                    gradient: const LinearGradient(colors: [Color(0xFFFF2D8D), Color(0xFFFF6A00)]),
                   ),
-                ),
-                child: Center(
-                  child: loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                    "Continuar",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  child: Center(
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text("Continuar", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // 🔥 COMPONENTE REUTILIZÁVEL (CHIPS)
-  Widget _section(
-      String title,
-      List<String> options,
-      String? selected,
-      Function(String) onSelect,
-      ) {
+  // 🔥 COMPONENTE MÚLTIPLA ESCOLHA
+  Widget _sectionMulti(String title, List<String> options, List<String> selectedList) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         Text(title, style: const TextStyle(color: Colors.white70)),
         const SizedBox(height: 10),
-
         Wrap(
           spacing: 10,
           runSpacing: 10,
           children: options.map((item) {
-
-            final isSelected = selected == item;
-
+            final isSelected = selectedList.contains(item);
             return GestureDetector(
-              onTap: () => setState(() => onSelect(item)),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  gradient: isSelected
-                      ? const LinearGradient(
-                    colors: [
-                      Color(0xFFFF2D8D),
-                      Color(0xFFFF6A00),
-                    ],
-                  )
-                      : null,
-                  color: isSelected ? null : Colors.white10,
-                ),
-                child: Text(
-                  item,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
+              onTap: () => _toggleItem(selectedList, item),
+              child: _chip(item, isSelected),
             );
           }).toList(),
         ),
-
         const SizedBox(height: 20),
       ],
+    );
+  }
+
+  // 🔥 COMPONENTE ESCOLHA ÚNICA
+  Widget _sectionSingle(String title, List<String> options, String? selected, Function(String) onSelect) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(color: Colors.white70)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: options.map((item) {
+            final isSelected = selected == item;
+            return GestureDetector(
+              onTap: () => setState(() => onSelect(item)),
+              child: _chip(item, isSelected),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _chip(String text, bool selected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        gradient: selected ? const LinearGradient(colors: [Color(0xFFFF2D8D), Color(0xFFFF6A00)]) : null,
+        color: selected ? null : Colors.white10,
+      ),
+      child: Text(text, style: const TextStyle(color: Colors.white)),
     );
   }
 }
