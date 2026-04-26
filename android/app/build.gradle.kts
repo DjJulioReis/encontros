@@ -9,7 +9,7 @@ android {
     namespace = "com.example.encontros"
 
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -31,6 +31,18 @@ android {
         versionName = flutter.versionName
         multiDexEnabled = true
     }
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+    buildFeatures {
+        viewBinding = false
+    }
+    dependenciesInfo {
+        includeInApk = false
+    }
+    buildToolsVersion = "36.0.0"
 }
 
 dependencies {
