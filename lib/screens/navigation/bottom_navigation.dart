@@ -45,9 +45,9 @@ class _BottomNavigationState extends State<BottomNavigation> {
         ),
         child: CustomBottomNav(
           currentIndex: currentIndex,
-          onTap: (index) {
-            setState(() => currentIndex = index);
-          },
+         // onTap: (index) {
+         //   setState(() => currentIndex = index);
+         // },
         ),
       ),
     );

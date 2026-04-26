@@ -7,7 +7,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/foundation.dart';
+
+// 🔥 Imports do seu projeto
+import '../../widgets/custom_bottom_nav.dart';
 import '../perfil/perfil_user_screen.dart';
+import '../home/home_screen.dart';
+import '../busca/busca_screen.dart';
 
 class RadarScreen extends StatefulWidget {
   const RadarScreen({super.key});
@@ -24,7 +29,6 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
   final String _myUid = FirebaseAuth.instance.currentUser?.uid ?? "";
 
   Set<Marker> _markers = {};
-  // Cache para não processar a mesma imagem várias vezes
   final Map<String, BitmapDescriptor> _customIcons = {};
 
   @override
@@ -37,22 +41,27 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
     )..repeat();
   }
 
-  // 🔥 GERADOR DE MARCADOR CUSTOMIZADO (Foto + Nome)
+  @override
+  void dispose() {
+    _controller.dispose();
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  // 🔥 GERADOR DE MARCADOR CUSTOMIZADO
   Future<BitmapDescriptor> _getClusterMarker({required String imageUrl, required String name}) async {
     if (_customIcons.containsKey(imageUrl)) return _customIcons[imageUrl]!;
 
-    const double size = 150.0; // Tamanho total do widget do marcador
+    const double size = 150.0;
     const double imageSize = 100.0;
 
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
     final Paint paint = Paint()..color = Colors.pinkAccent;
 
-    // 1. Desenhar fundo do nome (Retângulo arredondado embaixo)
     final RRect nameRect = RRect.fromLTRBR(10, size - 40, size - 10, size, const Radius.circular(10));
     canvas.drawRRect(nameRect, paint);
 
-    // 2. Desenhar o Nome
     TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
     textPainter.text = TextSpan(
       text: name.length > 10 ? "${name.substring(0, 8)}.." : name,
@@ -61,21 +70,20 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
     textPainter.layout();
     textPainter.paint(canvas, Offset((size - textPainter.width) / 2, size - 35));
 
-    // 3. Desenhar Borda Rosa para a Foto
     canvas.drawCircle(const Offset(size / 2, imageSize / 2), (imageSize / 2) + 4, paint);
 
-    // 4. Carregar e Cortar a Imagem em Círculo
     try {
       final Uint8List imageBytes = await _fetchImage(imageUrl);
       final ui.Codec codec = await ui.instantiateImageCodec(imageBytes, targetWidth: imageSize.toInt(), targetHeight: imageSize.toInt());
       final ui.FrameInfo fi = await codec.getNextFrame();
-
       final ui.Image image = fi.image;
+
       final Path clipPath = Path()..addOval(Rect.fromLTWH((size - imageSize) / 2, 0, imageSize, imageSize));
+      canvas.save();
       canvas.clipPath(clipPath);
       canvas.drawImage(image, Offset((size - imageSize) / 2, 0), Paint());
+      canvas.restore();
     } catch (e) {
-      // Se falhar, desenha um círculo cinza com ícone de pessoa
       canvas.drawCircle(const Offset(size / 2, imageSize / 2), imageSize / 2, Paint()..color = Colors.grey);
     }
 
@@ -91,15 +99,16 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
   Future<Uint8List> _fetchImage(String url) async {
     final HttpClientRequest request = await HttpClient().getUrl(Uri.parse(url));
     final HttpClientResponse response = await request.close();
-    final Uint8List bytes = await consolidateHttpClientResponseBytes(response);
-    return bytes;
+    return await consolidateHttpClientResponseBytes(response);
   }
 
   Future<void> _determinePosition() async {
     try {
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      setState(() => _currentPosition = position);
-      _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)));
+      if (mounted) {
+        setState(() => _currentPosition = position);
+        _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)));
+      }
     } catch (e) {
       debugPrint("Erro GPS: $e");
     }
@@ -108,7 +117,7 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
   Future<void> _updateVisibleRegion() async {
     if (_mapController == null) return;
     LatLngBounds bounds = await _mapController!.getVisibleRegion();
-    setState(() => _mapBounds = bounds);
+    if (mounted) setState(() => _mapBounds = bounds);
   }
 
   void _updateMarkers(List<QueryDocumentSnapshot> docs) async {
@@ -120,11 +129,10 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
 
       final double lat = (data['lat'] ?? 0).toDouble();
       final double lng = (data['lng'] ?? 0).toDouble();
-      final String nome = data['nome'] ?? "Usuário";
+      final String nome = data['nikname'] ?? "Usuário";
       final String foto = data['foto_principal'] ?? "";
 
       if (lat != 0 && lng != 0) {
-        // 🔥 Gera o ícone customizado com foto e nome
         BitmapDescriptor customIcon = await _getClusterMarker(
             imageUrl: foto.isNotEmpty ? foto : "https://via.placeholder.com/100",
             name: nome
@@ -134,87 +142,90 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
           Marker(
             markerId: MarkerId(userId),
             position: LatLng(lat, lng),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => PerfilUserScreen(peerId: userId)));
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PerfilUserScreen(peerId: userId))),
             icon: customIcon,
           ),
         );
       }
     }
-    setState(() => _markers = newMarkers);
+    if (mounted) setState(() => _markers = newMarkers);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1E),
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          _currentPosition == null
-              ? const Center(child: CircularProgressIndicator(color: Colors.pinkAccent))
-              : GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-              zoom: 15,
+    return PopScope(
+      canPop: false, // 🔥 Protege contra a tela vermelha (Assertion Error)
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen()));
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F0F1E),
+        body: Stack(
+          alignment: Alignment.center,
+          children: [
+            _currentPosition == null
+                ? const Center(child: CircularProgressIndicator(color: Colors.pinkAccent))
+                : GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                zoom: 15,
+              ),
+              onMapCreated: (controller) {
+                _mapController = controller;
+                _updateVisibleRegion();
+              },
+              onCameraIdle: () => _updateVisibleRegion(),
+              myLocationEnabled: false,
+              zoomControlsEnabled: false,
+              markers: _markers,
+              mapType: MapType.normal,
+              style: null, // Aqui você pode adicionar o JSON do estilo escuro do mapa
             ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-              _updateVisibleRegion();
-            },
-            onCameraIdle: () => _updateVisibleRegion(),
-            myLocationEnabled: false,
-            zoomControlsEnabled: false,
-            markers: _markers,
-            mapType: MapType.normal,
-          ),
 
-          // Efeito de Radar
-          IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Container(
-                  width: MediaQuery.of(context).size.width * _controller.value * 2.5,
-                  height: MediaQuery.of(context).size.width * _controller.value * 2.5,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.pinkAccent.withOpacity(1 - _controller.value), width: 1.5),
-                  ),
-                );
+            // Efeito de Radar Animado
+            IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Container(
+                    width: MediaQuery.of(context).size.width * _controller.value * 2.5,
+                    height: MediaQuery.of(context).size.width * _controller.value * 2.5,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.pinkAccent.withOpacity(1 - _controller.value), width: 1.5),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            _buildCentralAvatar(),
+
+            // Stream de Usuários baseada no que aparece no mapa
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('usuarios').where('ativo', isEqualTo: true).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final filteredDocs = snapshot.data!.docs.where((doc) {
+                    final d = doc.data() as Map<String, dynamic>;
+                    double lat = (d['lat'] ?? 0).toDouble();
+                    double lng = (d['lng'] ?? 0).toDouble();
+                    if (_mapBounds == null) return true;
+                    return _mapBounds!.contains(LatLng(lat, lng));
+                  }).toList();
+
+                  _updateMarkers(filteredDocs);
+                }
+                return const SizedBox.shrink();
               },
             ),
-          ),
 
-          _buildCentralAvatar(),
-
-          // Stream de Usuários
-          StreamBuilder<QuerySnapshot>(
-            stream: (_mapBounds == null)
-                ? FirebaseFirestore.instance.collection('usuarios').where('ativo', isEqualTo: true).snapshots()
-                : FirebaseFirestore.instance.collection('usuarios')
-                .where('ativo', isEqualTo: true)
-                .where('lat', isGreaterThanOrEqualTo: _mapBounds!.southwest.latitude)
-                .where('lat', isLessThanOrEqualTo: _mapBounds!.northeast.latitude)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                final filteredDocs = snapshot.data!.docs.where((doc) {
-                  final d = doc.data() as Map<String, dynamic>;
-                  double lng = (d['lng'] ?? 0).toDouble();
-                  if (_mapBounds == null) return true;
-                  return lng >= _mapBounds!.southwest.longitude && lng <= _mapBounds!.northeast.longitude;
-                }).toList();
-
-                _updateMarkers(filteredDocs);
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-
-          _buildHeader(),
-        ],
+            _buildHeader(),
+          ],
+        ),
+        // 🔥 Rodapé Padronizado (Radar é o índice 1)
+        bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
       ),
     );
   }
@@ -260,13 +271,12 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
 
   Widget _buildHeader() {
     return Positioned(
-      top: 50,
-      left: 15,
-      right: 15,
+      top: 50, left: 15, right: 15,
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            // 🔥 Corrigido: pushReplacement para não dar erro de histórico vazio
+            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen())),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
@@ -287,7 +297,7 @@ class _RadarScreenState extends State<RadarScreen> with SingleTickerProviderStat
           ),
           const Spacer(),
           FloatingActionButton.small(
-            heroTag: "btn_gps",
+            heroTag: "btn_gps_radar",
             backgroundColor: Colors.pinkAccent,
             onPressed: _determinePosition,
             child: const Icon(Icons.my_location, color: Colors.white),

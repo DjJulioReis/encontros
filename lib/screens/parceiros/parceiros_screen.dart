@@ -61,25 +61,7 @@ class ParceirosScreen extends StatelessWidget {
       ),
 
       // 🧭 NAVEGAÇÃO (Índice 1 - Curtidas/Parceiros)
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: 1,
-        onTap: (index) {
-          if (index == 1) return;
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
-              break;
-            case 1:
-              break;
-            case 2:
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen()));
-              break;
-            case 3:
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PerfilScreen()));
-              break;
-          }
-        },
-      ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 0),
     );
   }
 }

@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (userSnapshot.hasData && userSnapshot.data!.exists) {
           var data = userSnapshot.data!.data() as Map<String, dynamic>;
-          nomeUsuario = data['nome'] ?? "Usuário";
+          nomeUsuario = data['nikname'] ?? "Usuário";
           fotoPerfil = data['foto_principal'];
         }
 
@@ -114,13 +114,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     HomeCard(imagePath: "assets/images/parceiros.png", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParceirosScreen()))),
                     HomeCard(imagePath: "assets/images/buscar.png", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BuscaScreen()))),
                     HomeCard(imagePath: "assets/images/fotos-lista.png", onTap: () {}),
-                    HomeCard(imagePath: "assets/images/chat.png", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatGlobalScreen(name: nomeUsuario)))),
+                    HomeCard(
+                        imagePath: "assets/images/chat.png",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatGlobalScreen()))
+                    ),
 
                     // BATE PAPO COM CONTADOR
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        HomeCard(imagePath: "assets/images/bate_papo.png", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatGlobalScreen(name: nomeUsuario)))),
+                        HomeCard(
+                            imagePath: "assets/images/bate_papo.png",
+                            onTap: () => Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => const ChatGlobalScreen()) // 🔥 Sem o 'name', limpo e rápido!
+                            )
+                        ),
                         Positioned(
                           top: -5,
                           right: -5,
@@ -145,16 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          bottomNavigationBar: CustomBottomNav(
-            currentIndex: 0,
-            onTap: (index) {
-              switch (index) {
-                case 1: Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BuscaScreen())); break;
-                case 2: Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ChatGlobalScreen(name: nomeUsuario))); break;
-                case 3: Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PerfilScreen())); break;
-              }
-            },
-          ),
+          bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
         );
       },
     );

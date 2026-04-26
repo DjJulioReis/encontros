@@ -6,10 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/colors.dart';
 import '../../core/location_controller.dart';
 import '../../core/distance_service.dart';
+import '../../widgets/custom_bottom_nav.dart';
 
 class ChatGlobalScreen extends StatefulWidget {
-  final String name;
-  const ChatGlobalScreen({super.key, required this.name});
+  // 🔥 Removi o 'required name'. Agora ela busca sozinha!
+  const ChatGlobalScreen({super.key});
 
   @override
   State<ChatGlobalScreen> createState() => _ChatGlobalScreenState();
@@ -27,10 +28,9 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
   Future<void> sendMessage(double? lat, double? lng) async {
     if (_messageController.text.trim().isEmpty) return;
 
-    // Se o GPS falhar, avisamos o usuário
     if (lat == null || lng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("GPS não localizado. Verifique sua conexão.")),
+        const SnackBar(content: Text("GPS não localizado.")),
       );
       return;
     }
@@ -39,8 +39,12 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
     _messageController.clear();
 
     try {
+      // Buscamos o nikname atualizado do usuário no Firestore para a mensagem
+      final userDoc = await FirebaseFirestore.instance.collection('usuarios').doc(_myUid).get();
+      final String myName = userDoc.data()?['nikname'] ?? "Usuário";
+
       await FirebaseFirestore.instance.collection('chat_global').add({
-        "user": widget.name,
+        "user": myName, // 🔥 Nome pego direto do banco
         "uid": _myUid,
         "text": text,
         "lat": lat,
@@ -68,7 +72,6 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuta a localização em tempo real via Provider
     final myLocation = context.watch<LocationController>();
 
     return Scaffold(
@@ -76,22 +79,17 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context), // 🔥 Agora volta corretamente
-        ),
         title: const Text(
           "Radar Chat 📍",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
+        automaticallyImplyLeading: false, // Tiramos a seta manual para usar o BottomNav
       ),
       body: Column(
         children: [
-          // 🎚️ WIDGET DO SLIDER DE ALCANCE
           _buildRaioSlider(),
 
-          // 💬 LISTA DE MENSAGENS (FIREBASE)
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -100,10 +98,6 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
                   .limitToLast(50)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text("Erro ao carregar chat", style: TextStyle(color: Colors.white38)));
-                }
-
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator(color: Colors.pinkAccent));
                 }
@@ -118,7 +112,6 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
                     final data = docs[index].data() as Map<String, dynamic>;
                     bool isMe = data["uid"] == _myUid;
 
-                    // Cálculo de distância
                     double distance = 0;
                     if (myLocation.lat != null && myLocation.lng != null) {
                       distance = DistanceService.calculateDistance(
@@ -129,7 +122,7 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
                       );
                     }
 
-                    // 🔥 FILTRO DINÂMICO PELO SLIDER
+                    // Filtro pelo slider de alcance
                     if (distance > _raioAjustado) return const SizedBox.shrink();
 
                     return _buildChatBubble(data, isMe, distance);
@@ -139,10 +132,11 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
             ),
           ),
 
-          // ⌨️ CAMPO DE INPUT
           _buildInputArea(myLocation),
         ],
       ),
+      // 🔥 Rodapé Padronizado (Chat é o índice 3)
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 3),
     );
   }
 
@@ -170,16 +164,9 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
               onChanged: (val) => setState(() => _raioAjustado = val),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.pinkAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              "${_raioAjustado.round()}km",
-              style: const TextStyle(color: Colors.pinkAccent, fontSize: 12, fontWeight: FontWeight.bold),
-            ),
+          Text(
+            "${_raioAjustado.round()}km",
+            style: const TextStyle(color: Colors.pinkAccent, fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -201,20 +188,14 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
             bottomLeft: Radius.circular(isMe ? 15 : 0),
             bottomRight: Radius.circular(isMe ? 0 : 15),
           ),
-          boxShadow: [
-            if (isMe) BoxShadow(color: Colors.pinkAccent.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))
-          ],
         ),
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!isMe)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  "${data["user"]} • ${distance.toStringAsFixed(1)} km",
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.pinkAccent, fontSize: 11),
-                ),
+              Text(
+                "${data["user"]} • ${distance.toStringAsFixed(1)} km",
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.pinkAccent, fontSize: 11),
               ),
             Text(
               data["text"] ?? "",
@@ -229,39 +210,25 @@ class _ChatGlobalScreenState extends State<ChatGlobalScreen> {
   Widget _buildInputArea(LocationController myLocation) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-      ),
+      decoration: const BoxDecoration(color: Color(0xFF1A1A2E)),
       child: SafeArea(
         child: Row(
           children: [
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(25),
+              child: TextField(
+                controller: _messageController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: "Diga algo para quem está perto...",
+                  hintStyle: TextStyle(color: Colors.white24, fontSize: 14),
+                  border: InputBorder.none,
                 ),
-                child: TextField(
-                  controller: _messageController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: "Diga algo para quem está perto...",
-                    hintStyle: TextStyle(color: Colors.white24, fontSize: 14),
-                    border: InputBorder.none,
-                  ),
-                  onSubmitted: (_) => sendMessage(myLocation.lat, myLocation.lng),
-                ),
+                onSubmitted: (_) => sendMessage(myLocation.lat, myLocation.lng),
               ),
             ),
-            const SizedBox(width: 8),
-            CircleAvatar(
-              backgroundColor: Colors.pinkAccent,
-              child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                onPressed: () => sendMessage(myLocation.lat, myLocation.lng),
-              ),
+            IconButton(
+              icon: const Icon(Icons.send, color: Colors.pinkAccent),
+              onPressed: () => sendMessage(myLocation.lat, myLocation.lng),
             ),
           ],
         ),

@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Gradle local e pastas de cache (Adicione isto!)
+.gradle/
+android/.gradle/
+android/.gradle_novo/
+
+# Propriedades locais do PC (contém caminhos do SDK)
+android/local.properties
