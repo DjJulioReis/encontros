@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
-import '../core/colors.dart';
 
-import '../screens/radar/radar_screen.dart';
-import '../screens/chat/chat_list_screen.dart';
-import '../screens/busca/busca_screen.dart';
-import '../screens/perfil/perfil_screen.dart';
+import '../../core/colors.dart';
+import '../../widgets/custom_bottom_nav.dart';
 
-import 'custom_bottom_nav.dart';
+import '../radar/radar_screen.dart';
+import '../chat/chat_list_screen.dart';
+import '../busca/busca_screen.dart';
+import '../perfil/perfil_screen.dart';
 
-class BottomNav extends StatefulWidget {
-  const BottomNav({super.key});
+class BottomNavigation extends StatefulWidget {
+  const BottomNavigation({super.key});
 
   @override
-  State<BottomNav> createState() => _BottomNavState();
+  State<BottomNavigation> createState() => _BottomNavigationState();
 }
 
-class _BottomNavState extends State<BottomNav> {
-
-  int currentIndex = 2; // 👈 começa na busca (Tinder vibe)
+class _BottomNavigationState extends State<BottomNavigation> {
+  int currentIndex = 2; // 🔥 começa na busca
 
   final List<Widget> screens = const [
     RadarScreen(),
@@ -41,14 +40,14 @@ class _BottomNavState extends State<BottomNav> {
             BoxShadow(
               color: Colors.black.withOpacity(0.4),
               blurRadius: 12,
-            )
+            ),
           ],
         ),
         child: CustomBottomNav(
           currentIndex: currentIndex,
-          //onTap: (index) {
-          //  setState(() => currentIndex = index);
-        //  },
+         // onTap: (index) {
+         //   setState(() => currentIndex = index);
+         // },
         ),
       ),
     );

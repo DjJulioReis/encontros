@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-import 'firebase_options.dart';
-import 'core/location_controller.dart';
-import 'screens/navigation/bottom_navigation.dart';
-import 'screens/login/login_screen.dart';
-import 'core/theme.dart';
+import 'package:encontros/firebase_options.dart';
+import 'package:encontros/core/location_controller.dart';
+import 'package:encontros/screens/navigation/bottom_navigation.dart';
+import 'package:encontros/screens/login/login_screen.dart';
+import 'package:encontros/core/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
